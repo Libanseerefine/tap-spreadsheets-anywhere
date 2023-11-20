@@ -99,6 +99,7 @@ class SharePointClient:
         url = self.base_url + "/sites?$select=siteCollection,webUrl,id,name"
         values = []
         success = False
+        retry = 1
         while not success:
             try:
                 response = self.session.get(url, headers=self.headers)
@@ -108,6 +109,9 @@ class SharePointClient:
             else:
                 if response.status_code != 200:
                     LOGGER.error('Error status_code = {}. Trying to renew access token.'.format(response.status_code))
+                    retry = retry + 1
+                    if retry > 3:
+                        raise Exception('Error status_code = {}. Trying to renew access token.'.format(response.status_code))
                     self.renew_access_token()
                     # raise_for_error(response)
                 else:
@@ -128,6 +132,7 @@ class SharePointClient:
     def get_drive_id(self, siteId, documentLibrary):
         url = self.base_url + "/sites/" + siteId + "/drives"
         success = False
+        retry = 1
         while not success:
             try:
                 response = self.session.get(url, headers=self.headers)
@@ -137,6 +142,9 @@ class SharePointClient:
             else:
                 if response.status_code != 200:
                     LOGGER.error('Error status_code = {}. Trying to renew access token.'.format(response.status_code))
+                    retry = retry + 1
+                    if retry > 3:
+                        raise Exception('Error status_code = {}. Trying to renew access token.'.format(response.status_code))
                     self.renew_access_token()
                     # raise_for_error(response)
                 else:
@@ -150,6 +158,7 @@ class SharePointClient:
     def get_drive_download_url_by_path(self, driveId, itemPath, lastUpdatedDate=False):
         url = self.base_url + "/drives/" + driveId + "/root:/{}".format(itemPath)
         success = False
+        retry = 1
         while not success:
             try:
                 response = self.session.get(url, headers=self.headers)
@@ -159,6 +168,11 @@ class SharePointClient:
             else:
                 if response.status_code != 200:
                     LOGGER.error("Error status_code = {}. Coundn't find '{}' file in sharepoint or another error. Trying to renew access token.".format(response.status_code, itemPath))
+                    retry = retry + 1
+                    if retry > 3:
+                        raise Exception(
+                            "Error status_code = {}. Couldn't find '{}' file in sharepoint or another error. Skipping".format(
+                                response.status_code, itemPath))
                     self.renew_access_token()
                     # raise_for_error(response)
                 else:
@@ -181,6 +195,7 @@ class SharePointClient:
     def get_drive_download_url(self, siteId, driveId, fileName, lastUpdatedDate=False):
         url = self.base_url + "/sites/" + siteId + "/drives/" + driveId + "/root/children"
         success = False
+        retry = 1
         while not success:
             try:
                 response = self.session.get(url, headers=self.headers)
@@ -190,6 +205,9 @@ class SharePointClient:
             else:
                 if response.status_code != 200:
                     LOGGER.error('Error status_code = {}. Trying to renew access token.'.format(response.status_code))
+                    retry = retry + 1
+                    if retry > 3:
+                        raise Exception('Error status_code = {}. Trying to renew access token.'.format(response.status_code))
                     self.renew_access_token()
                     # raise_for_error(response)
                 else:
