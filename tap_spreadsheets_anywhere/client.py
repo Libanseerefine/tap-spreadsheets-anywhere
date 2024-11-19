@@ -95,7 +95,39 @@ class SharePointClient:
         self.access_token = self.get_access_token()
         self.headers = {"content-type": "application/json", "Authorization": "Bearer " + self.access_token}
 
-    def get_site_id(self, siteName):
+
+    def get_site_id_by_domain(self, siteName, domain):
+        url = f"https://graph.microsoft.com/v1.0/sites/{domain}:/sites/{siteName}"
+        
+        retry = 1
+        success = False
+        while not success:
+            try:
+                response = self.session.get(url, headers=self.headers)
+            except Exception as e:
+                LOGGER.error('Connection Error. Trying to reconnect.')
+                self.renew_access_token()
+            else:
+                if response.status_code == 200:
+                    data = response.json()
+                    if "id" in data:
+                        return data["id"]
+                    else:
+                        raise Exception(f"Unexpected response format: {data}")
+                elif response.status_code == 404:
+                    raise Exception(f"Site '{siteName}' not found in domain '{domain}'.")
+                else:
+                    LOGGER.error(f"Error status_code = {response.status_code}. Trying to renew access token.")
+                    retry += 1
+                    if retry > 3:
+                        raise Exception(f"Error status_code = {response.status_code}. Request failed.")
+                    self.renew_access_token()
+        raise Exception(f"Could not retrieve site ID for '{siteName}' after multiple retries.")
+
+    def get_site_id(self, siteName, domain=False):
+        if domain != False:
+            return self.get_site_id_by_domain(siteName, domain)
+        
         url = self.base_url + "/sites?$select=siteCollection,webUrl,id,name"
         values = []
         success = False

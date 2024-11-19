@@ -39,7 +39,8 @@ CONFIG_CONTRACT = Schema({
             Required('client_secret'): str,
             Required('site_name'): str,
             Required('document_library'): str,
-            Required('file_path'): str
+            Required('file_path'): str,
+            Optional('domain'): str,
         }
     }]
 })

@@ -94,6 +94,7 @@ The configuration is also captured in [tables_config_util.py](tap_spreadsheets_a
                 "client_id": "******************************",
                 "client_secret": "******************************",
                 "site_name": "EDW References",
+                "domain": "EDW",
                 "document_library": "Documents",
                 "file_path": "EDW Reference Files/REF_BLDG_ASSET_TYPE.csv"
             },
@@ -111,6 +112,7 @@ The configuration is also captured in [tables_config_util.py](tap_spreadsheets_a
                 "client_id": "*******************************",
                 "client_secret": "*******************************",
                 "site_name": "EDW References",
+                "domain": "EDW",
                 "document_library": "Documents",
                 "file_path": "Office Leasing Reference Files/NWO Asset Information Worksheet.xlsx"
             },

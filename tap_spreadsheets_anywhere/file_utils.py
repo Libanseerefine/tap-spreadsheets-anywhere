@@ -372,7 +372,9 @@ def download_files_from_sharepoint(bucket, sharepoint_credentials):
         site_name = sharepoint_credentials['site_name']
         document_library = sharepoint_credentials['document_library']
         file_path = sharepoint_credentials['file_path']
-        site_id = client.get_site_id(site_name)
+        domain = sharepoint_credentials.get('domain', False)        
+        
+        site_id = client.get_site_id(site_name, domain)
         drive_id = client.get_drive_id(site_id, document_library)
         drive_download_url = client.get_drive_download_url_by_path(drive_id, file_path)
 
