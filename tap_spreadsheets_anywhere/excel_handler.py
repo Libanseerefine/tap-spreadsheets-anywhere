@@ -5,7 +5,7 @@ import openpyxl
 
 LOGGER = logging.getLogger(__name__)
 
-def generator_wrapper(reader):
+def generator_wrapper(reader, encapsulate_with_brackets=False):
     header_row = None
     for row in reader:
         to_return = {}
@@ -16,22 +16,32 @@ def generator_wrapper(reader):
         for index, cell in enumerate(row):
             header_cell = header_row[index]
 
-            formatted_key = header_cell.value
-            if not formatted_key:
-                formatted_key = '' 
+            # Determine header value or generate "ColumnX" if empty
+            if header_cell.value:
+                formatted_key = header_cell.value
+            else:
+                formatted_key = f"Column{index + 1}"  # Column numbering starts from 1
 
-            # remove non-word, non-whitespace characters
-            formatted_key = re.sub(r"[^\w\s]", '', formatted_key)
+            if encapsulate_with_brackets:
+                # Encapsulate with square brackets, leave content unchanged
+                formatted_key = f"[{formatted_key}]"
+            else:
+                # Remove non-word, non-whitespace characters
+                formatted_key = re.sub(r"[^\w\s]", '', formatted_key)
 
-            # replace whitespace with underscores
-            formatted_key = re.sub(r"\s+", '_', formatted_key)
+                # Replace whitespace with underscores
+                formatted_key = re.sub(r"\s+", '_', formatted_key)
 
-            to_return[formatted_key.lower()] = cell.value
+                # Convert to lowercase
+                formatted_key = formatted_key.lower()
+
+            to_return[formatted_key] = cell.value
 
         yield to_return
 
 
 def get_row_iterator(table_spec, file_handle):
+    encapsulate_with_brackets = table_spec.get('encapsulate_with_brackets', False)
     workbook = openpyxl.load_workbook(file_handle.name, read_only=True)
     if "worksheet_name" in table_spec:
         try:
@@ -55,4 +65,4 @@ def get_row_iterator(table_spec, file_handle):
         except Exception as e:
             LOGGER.info(e)
             active_sheet = worksheets[0]
-    return generator_wrapper(active_sheet)
+    return generator_wrapper(active_sheet, encapsulate_with_brackets)
