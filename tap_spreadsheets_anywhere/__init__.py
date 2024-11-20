@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import os
 import logging
+from dotenv import load_dotenv
+
 
 import dateutil
 import singer
@@ -51,7 +53,20 @@ def override_schema_with_config(inferred_schema, table_spec):
     # Note that we directly support setting selected through config so that this tap is useful outside Meltano
     return merge_dicts(inferred_schema, override_schema)
 
-
+def resolve_env_vars(config):
+    """
+    Recursively resolve environment variables in a configuration dictionary.
+    """
+    if isinstance(config, dict):
+        return {k: resolve_env_vars(v) for k, v in config.items()}
+    elif isinstance(config, list):
+        return [resolve_env_vars(v) for v in config]
+    elif isinstance(config, str) and config.startswith("${") and config.endswith("}"):
+        # Extract the variable name between ${...}
+        env_var = config[2:-1]
+        return os.getenv(env_var, config)  # Default to the original string if not found
+    return config
+    
 def discover(config):
     streams = []
     for table_spec in config['tables']:
@@ -141,6 +156,7 @@ REQUIRED_CONFIG_KEYS = 'tables'
 @utils.handle_top_exception(LOGGER)
 def main():
     # Parse command line arguments
+    load_dotenv()
     args = utils.parse_args([REQUIRED_CONFIG_KEYS])
     crawl_paths = [x for x in args.config['tables'] if "crawl_config" in x and x["crawl_config"]]
     if len(crawl_paths) > 0: # Our config includes at least one crawl block
@@ -155,6 +171,7 @@ def main():
         tables_config = args.config
 
     tables_config = Config.validate(tables_config)
+    tables_config = resolve_env_vars(tables_config)
     # If discover flag was passed, run discovery mode and dump output to stdout
     if args.discover:
         catalog = discover(tables_config)

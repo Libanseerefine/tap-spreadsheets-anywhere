@@ -16,6 +16,7 @@ setup(
         'boto3>=1.15.5',
         'google-cloud-storage>=1.31.2',
         'openpyxl==3.1.5',
+        'python_dotenv==1.0.1',
         'tqdm==4.57.0'
     ],
     entry_points="""
