@@ -5,7 +5,9 @@ import openpyxl
 
 LOGGER = logging.getLogger(__name__)
 
-def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=None, skip_initial=0, included_columns=None):
+def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=None, skip_initial=0, included_columns=None, filtered_columns=None):
+    # Define the list of columns to filter on
+    filtered_columns = filtered_columns or []
     excluded_columns = [] if excluded_columns is None or included_columns else excluded_columns
     included_columns = included_columns or []
 
@@ -16,11 +18,23 @@ def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=
             LOGGER.debug("Skipped (%d/%d) row: %r", _skip_count, skip_initial, row)
             _skip_count += 1
             continue
-        
+
         to_return = {}
         if header_row is None:
             header_row = row
             continue
+
+        # Check if the row should be skipped based on filtered_columns
+        if filtered_columns:
+            filter_column_indices = [
+                index for index, header_cell in enumerate(header_row)
+                if header_cell.value and header_cell.value.lower() in [col.lower() for col in filtered_columns]
+            ]
+
+            # Skip the row if all specified filter columns are empty
+            if all(not row[i].value for i in filter_column_indices):
+                LOGGER.debug("Row skipped due to empty values in filtered_columns '%s': %r", filtered_columns, row)
+                continue
 
         for index, cell in enumerate(row):
             header_cell = header_row[index]
@@ -44,11 +58,11 @@ def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=
                 # Convert to lowercase
                 formatted_key = formatted_key.lower()
 
-            # Handle whih columns should be extracted
+            # Handle which columns should be extracted
             if included_columns:
-                if formatted_key not in included_columns:
+                if header_cell.value not in included_columns:
                     continue
-            elif formatted_key in excluded_columns:
+            elif header_cell.value in excluded_columns:
                 continue
 
             to_return[formatted_key] = cell.value
@@ -61,6 +75,7 @@ def get_row_iterator(table_spec, file_handle):
     excluded_columns = table_spec.get('excluded_columns', [])
     included_columns = table_spec.get('included_columns', [])
     skip_initial = table_spec.get("skip_initial", 0)
+    filtered_columns = table_spec.get("filtered_columns", 0)
     workbook = openpyxl.load_workbook(file_handle.name, read_only=True)
     if "worksheet_name" in table_spec:
         try:
@@ -84,4 +99,4 @@ def get_row_iterator(table_spec, file_handle):
         except Exception as e:
             LOGGER.info(e)
             active_sheet = worksheets[0]
-    return generator_wrapper(active_sheet, encapsulate_with_brackets, excluded_columns, skip_initial, included_columns)
+    return generator_wrapper(active_sheet, encapsulate_with_brackets, excluded_columns, skip_initial, included_columns, filtered_columns)

@@ -132,6 +132,7 @@ Each object in the 'tables' array describes one or more CSV or Excel spreadsheet
 - **name**: A string describing the "table" (aka Singer stream) into which the source data should be loaded.
 - **excluded_columns**: (optional) An array holding the names of the columns that should be exluded, will be defaulted to empty array if included_columns is set. 
 - **included_columns**: (optional) An array holding the names of the columns that should be included.
+- **filtered_columns**: (optional) An array holding the names of the columns that determines if a row should be include or not, if the value of that column is empty it skips that row.
 - **skip_initial**: (optional) How many lines should be skipped. The default is 0.
 - **search_prefix**: (optional) This is an optional prefix to apply after the bucket that will be used to filter files in the listing request from the targeted system. This prefix potentially reduces the number of files returned from the listing request.
 - **pattern**: This is an escaped regular expression that the tap will use to filter the listing result set returned from the listing request. This pattern potentially reduces the number of listed files that are considered as sources for the declared table. It's a bit strange, since this is an escaped string inside of an escaped string, any backslashes in the RegEx will need to be double-escaped.

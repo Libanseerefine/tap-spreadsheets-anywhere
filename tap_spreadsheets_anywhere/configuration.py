@@ -19,6 +19,7 @@ CONFIG_CONTRACT = Schema({
         Optional('field_names'): [str],
         Optional('excluded_columns'): [str],
         Optional('included_columns'): [str],
+        Optional('filtered_columns'): [str],
         Optional('skip_initial'): int,
         Optional('search_prefix'): str,
         Optional('worksheet_name'): str,
