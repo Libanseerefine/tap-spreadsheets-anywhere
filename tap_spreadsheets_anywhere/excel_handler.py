@@ -5,7 +5,10 @@ import openpyxl
 
 LOGGER = logging.getLogger(__name__)
 
-def generator_wrapper(reader, encapsulate_with_brackets=False):
+def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=None):
+    if excluded_columns is None:
+        excluded_columns = []
+        
     header_row = None
     for row in reader:
         to_return = {}
@@ -35,6 +38,10 @@ def generator_wrapper(reader, encapsulate_with_brackets=False):
                 # Convert to lowercase
                 formatted_key = formatted_key.lower()
 
+            # Skip excluded columns
+            if formatted_key in excluded_columns:
+                continue
+
             to_return[formatted_key] = cell.value
 
         yield to_return
@@ -42,6 +49,7 @@ def generator_wrapper(reader, encapsulate_with_brackets=False):
 
 def get_row_iterator(table_spec, file_handle):
     encapsulate_with_brackets = table_spec.get('encapsulate_with_brackets', False)
+    excluded_columns = table_spec.get('excluded_columns', [])
     workbook = openpyxl.load_workbook(file_handle.name, read_only=True)
     if "worksheet_name" in table_spec:
         try:
@@ -52,7 +60,7 @@ def get_row_iterator(table_spec, file_handle):
     else:
         try:
             worksheets = workbook.worksheets
-            if(len(worksheets) == 1):
+            if len(worksheets) == 1:
                 active_sheet = worksheets[0]
             else:
                 max_row = 0
@@ -65,4 +73,4 @@ def get_row_iterator(table_spec, file_handle):
         except Exception as e:
             LOGGER.info(e)
             active_sheet = worksheets[0]
-    return generator_wrapper(active_sheet, encapsulate_with_brackets)
+    return generator_wrapper(active_sheet, encapsulate_with_brackets, excluded_columns)

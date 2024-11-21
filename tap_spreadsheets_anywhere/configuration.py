@@ -17,6 +17,7 @@ CONFIG_CONTRACT = Schema({
         Optional('universal_newlines'): bool,
         Optional('selected'): bool,
         Optional('field_names'): [str],
+        Optional('excluded_columns'): [str],
         Optional('search_prefix'): str,
         Optional('worksheet_name'): str,
         Optional('delimiter'): str,
