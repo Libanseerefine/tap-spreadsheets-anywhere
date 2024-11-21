@@ -5,9 +5,9 @@ import openpyxl
 
 LOGGER = logging.getLogger(__name__)
 
-def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=None, skip_initial=0):
-    if excluded_columns is None:
-        excluded_columns = []
+def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=None, skip_initial=0, included_columns=None):
+    excluded_columns = [] if excluded_columns is None or included_columns else excluded_columns
+    included_columns = included_columns or []
 
     _skip_count = 0
     header_row = None
@@ -44,8 +44,11 @@ def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=
                 # Convert to lowercase
                 formatted_key = formatted_key.lower()
 
-            # Skip excluded columns
-            if formatted_key in excluded_columns:
+            # Handle whih columns should be extracted
+            if included_columns:
+                if formatted_key not in included_columns:
+                    continue
+            elif formatted_key in excluded_columns:
                 continue
 
             to_return[formatted_key] = cell.value
@@ -56,6 +59,7 @@ def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=
 def get_row_iterator(table_spec, file_handle):
     encapsulate_with_brackets = table_spec.get('encapsulate_with_brackets', False)
     excluded_columns = table_spec.get('excluded_columns', [])
+    included_columns = table_spec.get('included_columns', [])
     skip_initial = table_spec.get("skip_initial", 0)
     workbook = openpyxl.load_workbook(file_handle.name, read_only=True)
     if "worksheet_name" in table_spec:
@@ -80,4 +84,4 @@ def get_row_iterator(table_spec, file_handle):
         except Exception as e:
             LOGGER.info(e)
             active_sheet = worksheets[0]
-    return generator_wrapper(active_sheet, encapsulate_with_brackets, excluded_columns, skip_initial)
+    return generator_wrapper(active_sheet, encapsulate_with_brackets, excluded_columns, skip_initial, included_columns)
