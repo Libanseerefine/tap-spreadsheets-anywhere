@@ -76,7 +76,7 @@ def get_row_iterator(table_spec, file_handle):
     included_columns = table_spec.get('included_columns', [])
     skip_initial = table_spec.get("skip_initial", 0)
     filtered_columns = table_spec.get("filtered_columns", 0)
-    workbook = openpyxl.load_workbook(file_handle.name, read_only=True)
+    workbook = openpyxl.load_workbook(file_handle.name, read_only=True, data_only = True)
     if "worksheet_name" in table_spec:
         try:
             active_sheet = workbook[table_spec["worksheet_name"]]
