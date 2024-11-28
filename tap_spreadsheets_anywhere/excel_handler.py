@@ -11,6 +11,10 @@ def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=
     excluded_columns = [] if excluded_columns is None or included_columns else excluded_columns
     included_columns = included_columns or []
 
+    # Lowercase and format excluded columns for consistent comparison
+    included_columns_lower = [col.lower() for col in included_columns]
+    excluded_columns_lower = [re.sub(r"\s+", '_', col.lower()) for col in excluded_columns]
+
     _skip_count = 0
     header_row = None
     for row in reader:
@@ -58,12 +62,25 @@ def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=
                 # Convert to lowercase
                 formatted_key = formatted_key.lower()
 
-            # Handle which columns should be extracted
+            # Direct exact match logic for included columns
             if included_columns:
-                if header_cell.value not in included_columns:
-                    continue
-            elif header_cell.value in excluded_columns:
-                continue
+                if header_cell.value and header_cell.value in included_columns:
+                    pass  # Direct match; include this column
+                else:
+                    # Process header for substring matching
+                    formatted_key = header_cell.value.lower() if header_cell.value else ""
+                    formatted_key = re.sub(r"\s+", '_', formatted_key)
+                    if not any(inc in formatted_key for inc in included_columns_lower):
+                        continue
+
+            # Exclude logic with consistent formatting
+            elif excluded_columns:
+                formatted_key = re.sub(r"\s+", '_', header_cell.value.lower() if header_cell.value else "")
+                if any(exc in formatted_key for exc in excluded_columns_lower):
+                    continue  # Exclude matching headers
+
+            # Final formatting for the output
+            formatted_key = re.sub(r"[^\w\s]", '', formatted_key).replace(' ', '_')
 
             to_return[formatted_key] = cell.value
 
