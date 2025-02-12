@@ -30,11 +30,35 @@ def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=
 
         # Check if the row should be skipped based on filtered_columns
         if filtered_columns:
-            filter_column_indices = [
-                index for index, header_cell in enumerate(header_row)
-                if header_cell.value and header_cell.value.lower() in [col.lower() for col in filtered_columns]
-            ]
+            header_map = {}
+            for idx, cell in enumerate(header_row):
+                header_val = cell.value if cell.value else f"Column{idx+1}"
+                header_map[header_val.lower()] = idx
 
+            filter_column_indices = []
+            for col in filtered_columns:
+                col_lower = col.lower().strip()
+
+                # Case 1: Direct match against header names or "ColumnX"
+                if col_lower in header_map:
+                    filter_column_indices.append(header_map[col_lower])
+                    continue
+
+                # Case 2: "ColumnX" format (e.g. "Column2") -> numeric index
+                match = re.match(r"^column(\d+)$", col_lower)
+                if match:
+                    col_index = int(match.group(1)) - 1
+                    if col_index < len(header_row):
+                        filter_column_indices.append(col_index)
+                        continue
+                    else:
+                        LOGGER.warning("Filtered column '%s' is out of range.", col)
+
+                LOGGER.warning(
+                    "Filtered column '%s' not found in header and not recognized as 'ColumnX'. Ignoring.",
+                    col
+                )
+                
             # Skip the row if all specified filter columns are empty
             if all(not row[i].value for i in filter_column_indices):
                 LOGGER.debug("Row skipped due to empty values in filtered_columns '%s': %r", filtered_columns, row)
