@@ -99,9 +99,18 @@ def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=
 
             # Exclude logic with consistent formatting
             elif excluded_columns:
+                # Ensure excluded_columns_lower is a set before updating
+                excluded_columns_lower = {re.sub(r"\s+", '_', col.lower()) for col in excluded_columns}
+
+                # Add "ColumnX" format *only* for explicitly excluded columns
+                excluded_columns_lower.update({f"column{idx+1}" for idx in range(len(header_row)) if f"column{idx+1}" in excluded_columns_lower})
+
                 formatted_key = re.sub(r"\s+", '_', header_cell.value.lower() if header_cell.value else "")
-                if any(exc in formatted_key for exc in excluded_columns_lower):
-                    continue  # Exclude matching headers
+                column_index_key = f"column{index+1}"  # ColumnX format
+
+                # Exclude if header name or column index (ColumnX) matches
+                if formatted_key in excluded_columns_lower or column_index_key in excluded_columns_lower:
+                    continue  # Skip excluded columns
 
             # Final formatting for the output
             formatted_key = re.sub(r"[^\w\s]", '', formatted_key).replace(' ', '_')
