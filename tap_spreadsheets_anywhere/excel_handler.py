@@ -95,11 +95,25 @@ def get_row_iterator(table_spec, file_handle):
     filtered_columns = table_spec.get("filtered_columns", 0)
     workbook = openpyxl.load_workbook(file_handle.name, read_only=True, data_only = True)
     if "worksheet_name" in table_spec:
-        try:
-            active_sheet = workbook[table_spec["worksheet_name"]]
-        except Exception as e:
-            LOGGER.error("Unable to open specified sheet '"+table_spec["worksheet_name"]+"' - did you check the workbook's sheet name for spaces?")
-            raise e
+        possible_sheet_names = [name.strip() for name in table_spec["worksheet_name"].split(',')]
+        active_sheet = None
+        
+        for sheet_name in possible_sheet_names:
+            if sheet_name in workbook.sheetnames:
+                # Found a matching worksheet in the workbook
+                active_sheet = workbook[sheet_name]
+                break
+
+        if not active_sheet:
+            # None of the candidate sheets were found
+            LOGGER.error(
+                "Unable to open any of the specified sheets '%s'. "
+                "Did you check for typos or extra spaces?",
+                table_spec["worksheet_name"],
+            )
+            raise ValueError(
+                f"No valid sheet found in workbook from list: {table_spec['worksheet_name']}"
+            )
     else:
         try:
             worksheets = workbook.worksheets

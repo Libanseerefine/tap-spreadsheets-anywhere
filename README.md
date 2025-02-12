@@ -121,7 +121,7 @@ The configuration is also captured in [tables_config_util.py](tap_spreadsheets_a
             "start_date": "2017-05-01T00:00:00Z",
             "key_properties": ["general_building_name"],
             "format": "excel",
-            "worksheet_name": "query"
+            "worksheet_name": "query, query2"
         }
     ]
 }
@@ -151,7 +151,7 @@ Each object in the 'tables' array describes one or more CSV or Excel spreadsheet
 - **prefer_schema_as_string**: (optional) Bool value either as true or false (default). Should the schema be all read as string by default.
 - **encapsulate_with_brackets**: (optional) Bool value, defaults to False. If True, keeps header names unchanged but encapsulates them in square brackets ([]); assigns empty headers as [ColumnX]. If False, formats headers by removing special characters, replacing spaces with underscores, and converting to lowercase.
 - **selected**: (optional) Should this table be synced. Defaults to true. Setting to false will skip this table on a sync run.
-- **worksheet_name**: (optional) the worksheet name to pull from in the targeted xls file(s). Only required when format is excel
+- **worksheet_name**: (optional) the worksheet name to pull from in the targeted xls file(s). Only required when format is excel, Can handle searching multiple worksheets if seperated by comma.
 - **delimiter**: (optional) the delimiter to use when format is 'csv'. Defaults to a comma ',' but you can set delimiter to 'detect' to leverage the csv "Sniffer" for auto-detecting delimiter. 
 - **quotechar**: (optional) the character used to surround values that may contain delimiters - defaults to a double quote '"'
 
