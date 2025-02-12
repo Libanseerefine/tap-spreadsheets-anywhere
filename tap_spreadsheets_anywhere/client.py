@@ -3,6 +3,7 @@ import singer
 from datetime import datetime
 import tqdm
 import os
+import fnmatch
 
 LOGGER = singer.get_logger()
 
@@ -223,6 +224,63 @@ class SharePointClient:
                     if not fileExist:
                         raise Exception("Coundn't find '{}' file in sharepoint".format(itemPath))
                     return False
+
+    def get_file_paths_by_wildcard(self, driveId, wildcardPath):
+        if '/' in wildcardPath:
+            folder_path, file_pattern = wildcardPath.rsplit('/', 1)
+        else:
+            folder_path = ''
+            file_pattern = wildcardPath
+        
+        if folder_path:
+            url = f"{self.base_url}/drives/{driveId}/root:/{folder_path}:/children"
+        else:
+            url = f"{self.base_url}/drives/{driveId}/root/children"
+
+        success = False
+        retry = 1
+
+        while not success:
+            try:
+                response = self.session.get(url, headers=self.headers)
+            except:
+                LOGGER.error('Connection Error. Trying to reconnect.')
+                self.renew_access_token()
+            else:
+                if response.status_code != 200:
+                    LOGGER.error(
+                        f"Error status_code = {response.status_code} while listing children "
+                        f"for path '{folder_path}'. Trying to renew access token."
+                    )
+                    retry += 1
+                    if retry > 3:
+                        raise Exception(
+                            f"Error status_code = {response.status_code}. Failed to list items for '{folder_path}'"
+                        )
+                    self.renew_access_token()
+                else:
+                    success = True
+                    data = response.json()
+                    
+                    if "value" not in data:
+                        LOGGER.warning(f"No 'value' in response for listing {folder_path}")
+                        return []
+
+                    items = data["value"]
+                    matching_paths = []
+
+                    for item in items:
+                        if fnmatch.fnmatch(item["name"], file_pattern):
+                            if folder_path:
+                                full_path = f"{folder_path}/{item['name']}"
+                            else:
+                                full_path = item['name']
+                            
+                            if "file" in item:
+                                matching_paths.append(full_path)
+
+                    return matching_paths
+        return []
 
     def get_drive_download_url(self, siteId, driveId, fileName, lastUpdatedDate=False):
         url = self.base_url + "/sites/" + siteId + "/drives/" + driveId + "/root/children"

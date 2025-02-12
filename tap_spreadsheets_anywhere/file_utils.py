@@ -372,17 +372,46 @@ def download_files_from_sharepoint(bucket, sharepoint_credentials):
         site_name = sharepoint_credentials['site_name']
         document_library = sharepoint_credentials['document_library']
         file_path = sharepoint_credentials['file_path']
-        domain = sharepoint_credentials.get('domain', False)        
-        
+        domain = sharepoint_credentials.get('domain', False)
+
         site_id = client.get_site_id(site_name, domain)
         drive_id = client.get_drive_id(site_id, document_library)
-        drive_download_url = client.get_drive_download_url_by_path(drive_id, file_path)
 
-        file_name = os.path.basename(file_path)
-        local_file_path = bucket + '/' + file_name
-        if drive_download_url:
-            client.download_file(drive_download_url, filename=local_file_path)
-            LOGGER.info("'{}' file is downloaded from '{}' site and '{}' document library into '{}'".format(file_name, site_name, document_library, local_file_path))
-            return True
+        if '*' in file_path:
+            matched_file_paths = client.get_file_paths_by_wildcard(drive_id, file_path)
+            if not matched_file_paths:
+                LOGGER.warning(f"No files found matching '{file_path}'")
+                return False
+
+            downloaded = False
+            for matched_path in matched_file_paths:
+                drive_download_url = client.get_drive_download_url_by_path(drive_id, matched_path)
+                if drive_download_url:
+                    file_name = os.path.basename(matched_path)
+                    local_file_path = os.path.join(bucket, file_name)
+                    client.download_file(drive_download_url, filename=local_file_path)
+                    LOGGER.info(
+                        "'{}' file downloaded from '{}' site, '{}' document library into '{}'"
+                        .format(file_name, site_name, document_library, local_file_path)
+                    )
+                    downloaded = True
+            
+            return downloaded
+
         else:
-            return False
+            drive_download_url = client.get_drive_download_url_by_path(drive_id, file_path)
+            file_name = os.path.basename(file_path)
+            local_file_path = os.path.join(bucket, file_name)
+            if drive_download_url:
+                client.download_file(drive_download_url, filename=local_file_path)
+                LOGGER.info(
+                    "'{}' file is downloaded from '{}' site and '{}' document library into '{}'"
+                    .format(file_name, site_name, document_library, local_file_path)
+                )
+                return True
+            else:
+                return False
+
+
+
+        
