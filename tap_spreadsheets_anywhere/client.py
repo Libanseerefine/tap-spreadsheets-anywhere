@@ -347,6 +347,7 @@ class SharePointClient:
                 LOGGER.info(dict(file_size=file_size))
                 LOGGER.info(dict(num_bars=num_bars))
 
+            os.makedirs(os.path.dirname(local_filename), exist_ok=True)
             with open(local_filename, 'wb') as fp:
                 for chunk in tqdm.tqdm(
                         r.iter_content(chunk_size=chunk_size)
