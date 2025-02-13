@@ -32,6 +32,7 @@ CONFIG_CONTRACT = Schema({
         Optional('prefer_number_vs_integer'): bool,
         Optional('prefer_schema_as_string'): bool,
         Optional('encapsulate_with_brackets'): bool,
+        Optional('cached'): bool,
         Optional('schema_overrides'): {
             str: {
                 Required('type'): Any(Any('null','string','integer','number','date-time'),

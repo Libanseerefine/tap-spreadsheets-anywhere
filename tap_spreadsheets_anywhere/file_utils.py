@@ -119,7 +119,11 @@ def get_matching_objects(table_spec, modified_since=None):
         target_objects = convert_URL_to_file_list(table_spec)
     elif protocol == 'sharepoint':
         # download files
-        if download_files_from_sharepoint(bucket, table_spec['sharepoint_credentials']):
+        if table_spec['cached']:
+            abs_bucket = get_abs_path(bucket)
+            target_objects = list_files_in_local_bucket(abs_bucket, table_spec.get('search_prefix'))
+            table_spec['path'] = 'file://' + abs_bucket # change sharepoint protocol to file
+        elif download_files_from_sharepoint(bucket, table_spec['sharepoint_credentials']):
             abs_bucket = get_abs_path(bucket)
             target_objects = list_files_in_local_bucket(abs_bucket, table_spec.get('search_prefix'))
             table_spec['path'] = 'file://' + abs_bucket # change sharepoint protocol to file
