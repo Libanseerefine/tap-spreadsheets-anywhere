@@ -32,7 +32,7 @@ def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=
         if filtered_columns:
             header_map = {}
             for idx, cell in enumerate(header_row):
-                header_val = cell.value if cell.value else f"Column{idx+1}"
+                header_val = cell.value if isinstance(cell.value, str) else f"Column{idx+1}"
                 header_map[header_val.lower()] = idx
 
             filter_column_indices = []
@@ -68,7 +68,7 @@ def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=
             header_cell = header_row[index]
 
             # Determine header value or generate "ColumnX" if empty
-            if header_cell.value:
+            if isinstance(header_cell.value, str):
                 formatted_key = header_cell.value
             else:
                 formatted_key = f"Column{index + 1}"  # Column numbering starts from 1
@@ -87,13 +87,18 @@ def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=
                 formatted_key = formatted_key.lower()
 
             # Direct exact match logic for included columns
+            
             if included_columns:
-                if header_cell.value and header_cell.value in included_columns:
+                if isinstance(header_cell.value, str) and header_cell.value in included_columns:
                     pass  # Direct match; include this column
                 else:
-                    # Process header for substring matching
-                    formatted_key = header_cell.value.lower() if header_cell.value else ""
+                    # Ensure the header is a string; otherwise, use "ColumnX"
+                    formatted_key = header_cell.value.lower() if isinstance(header_cell.value, str) else f"Column{index + 1}"
+
+                    # Replace spaces with underscores (only applicable for string headers)
                     formatted_key = re.sub(r"\s+", '_', formatted_key)
+
+                    # Check if formatted_key contains any of the included columns
                     if not any(inc in formatted_key for inc in included_columns_lower):
                         continue
 
@@ -105,7 +110,10 @@ def generator_wrapper(reader, encapsulate_with_brackets=False, excluded_columns=
                 # Add "ColumnX" format *only* for explicitly excluded columns
                 excluded_columns_lower.update({f"column{idx+1}" for idx in range(len(header_row)) if f"column{idx+1}" in excluded_columns_lower})
 
-                formatted_key = re.sub(r"\s+", '_', header_cell.value.lower() if header_cell.value else "")
+                formatted_key = (re.sub(r"\s+", '_', header_cell.value.lower())
+                    if isinstance(header_cell.value, str)
+                    else f"column{index+1}")
+
                 column_index_key = f"column{index+1}"  # ColumnX format
 
                 # Exclude if header name or column index (ColumnX) matches
