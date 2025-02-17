@@ -47,7 +47,8 @@ CONFIG_CONTRACT = Schema({
             Required('document_library'): str,
             Required('file_path'): str,
             Optional('domain'): str,
-        }
+        },
+        Optional('rename_mapping'): {str: str},
     }]
 })
 
