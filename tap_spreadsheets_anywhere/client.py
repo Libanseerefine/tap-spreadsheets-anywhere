@@ -4,6 +4,7 @@ from datetime import datetime
 import tqdm
 import os
 import fnmatch
+from collections import deque
 
 LOGGER = singer.get_logger()
 
@@ -281,6 +282,76 @@ class SharePointClient:
 
                     return matching_paths
         return []
+
+    def list_children(self, drive_id, folder_path):
+        if folder_path:
+            url = f"{self.base_url}/drives/{drive_id}/root:/{folder_path}:/children"
+        else:
+            # Root of the drive
+            url = f"{self.base_url}/drives/{drive_id}/root/children"
+
+        retry = 0
+        while retry < 3:
+            try:
+                response = self.session.get(url, headers=self.headers)
+                if response.status_code == 200:
+                    data = response.json()
+                    return data.get("value", [])
+                else:
+                    LOGGER.warning(
+                        f"list_children: Received status {response.status_code}, retrying..."
+                    )
+                    retry += 1
+                    self.renew_access_token()
+            except Exception as exc:
+                LOGGER.error("list_children: Exception %s, retrying...", exc)
+                retry += 1
+                self.renew_access_token()
+
+        LOGGER.error("list_children: Failed to retrieve children for %s after retries", folder_path)
+        return []
+
+    def list_all_files_in_folder_up_to_depth(self, drive_id, folder_path, max_depth=None):
+        queue = deque()
+        queue.append((folder_path, 0))
+
+        while queue:
+            current_folder, depth = queue.popleft()
+            items = self.list_children(drive_id, current_folder)
+
+            for item in items:
+                item_name = item["name"]
+                if current_folder:
+                    full_path = f"{current_folder}/{item_name}"
+                else:
+                    # Root-level item
+                    full_path = item_name
+
+                if "folder" in item:
+                    # Subfolder
+                    if max_depth is None or depth < max_depth:
+                        queue.append((full_path, depth + 1))
+                elif "file" in item:
+                    yield full_path
+
+    def get_file_paths_by_wildcard_with_depth(self, drive_id, wildcard_path, max_depth=None):
+        if "/" in wildcard_path:
+            parts = wildcard_path.rsplit("/", 1)
+            base_folder = parts[0]
+            file_pattern = parts[1]
+        else:
+            base_folder = ""
+            file_pattern = wildcard_path
+
+        all_files = self.list_all_files_in_folder_up_to_depth(drive_id, base_folder, max_depth)
+
+        matching_paths = []
+        for full_path in all_files:
+            filename_only = os.path.basename(full_path)
+            if fnmatch.fnmatch(filename_only, file_pattern):
+                matching_paths.append(full_path)
+
+        return matching_paths
 
     def get_drive_download_url(self, siteId, driveId, fileName, lastUpdatedDate=False):
         url = self.base_url + "/sites/" + siteId + "/drives/" + driveId + "/root/children"

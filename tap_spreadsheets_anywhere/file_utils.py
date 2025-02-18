@@ -105,6 +105,8 @@ def parse_path(path):
 
 def get_matching_objects(table_spec, modified_since=None):
     protocol, bucket = parse_path(table_spec['path'])
+    max_depth = table_spec.get("max_depth", None)
+    cached = table_spec.get("cached", False)
 
     # TODO Breakout the transport schemes here similar to the registry/loading pattern used by smart_open
     if protocol == 's3':
@@ -119,11 +121,11 @@ def get_matching_objects(table_spec, modified_since=None):
         target_objects = convert_URL_to_file_list(table_spec)
     elif protocol == 'sharepoint':
         # download files
-        if table_spec['cached']:
+        if cached:
             abs_bucket = get_abs_path(bucket)
             target_objects = list_files_in_local_bucket(abs_bucket, table_spec.get('search_prefix'))
             table_spec['path'] = 'file://' + abs_bucket # change sharepoint protocol to file
-        elif download_files_from_sharepoint(bucket, table_spec['sharepoint_credentials']):
+        elif download_files_from_sharepoint(bucket, table_spec['sharepoint_credentials'], max_depth):
             abs_bucket = get_abs_path(bucket)
             target_objects = list_files_in_local_bucket(abs_bucket, table_spec.get('search_prefix'))
             table_spec['path'] = 'file://' + abs_bucket # change sharepoint protocol to file
@@ -369,8 +371,7 @@ def download_file(url, filename=False, verbose=False):
         return True
     return False
 
-
-def download_files_from_sharepoint(bucket, sharepoint_credentials):
+def download_files_from_sharepoint(bucket, sharepoint_credentials, max_depth = None):
     # "path": "sharepoint://client_id:client_secret@tenant_name//site_name/document_library",
     with SharePointClient(sharepoint_credentials) as client:
         site_name = sharepoint_credentials['site_name']
@@ -382,7 +383,7 @@ def download_files_from_sharepoint(bucket, sharepoint_credentials):
         drive_id = client.get_drive_id(site_id, document_library)
 
         if '*' in file_path:
-            matched_file_paths = client.get_file_paths_by_wildcard(drive_id, file_path)
+            matched_file_paths = client.get_file_paths_by_wildcard_with_depth(drive_id, file_path, max_depth)
             if not matched_file_paths:
                 LOGGER.warning(f"No files found matching '{file_path}'")
                 return False
